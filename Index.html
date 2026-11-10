@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة أبحاث القياسات الحيوية للوحة المفاتيح العربية | Arabic Keystroke Dynamics Platform</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for scientific visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Cairo & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .char-correct {
+      color: #10b981;
+    }
+    .char-incorrect {
+      background-color: #fecaca;
+      color: #dc2626;
+      border-radius: 2px;
+    }
+    .char-current {
+      background-color: #dbeafe;
+      border-bottom: 2px solid #2563eb;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Research Notice & Navigation Bar -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 space-x-reverse">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-xl">
+          ك
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            منظومة القياسات الحيوية للوحة المفاتيح
+            <span class="text-xs font-mono font-medium bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/30">KD-Research v1.0</span>
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">جمع وتحليل بيانات التوقيت الإدراكي والحركي باللغة العربية بدقة الميلي ثانية</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="text-xs font-mono text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60 hidden md:flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          المؤقت الدقيق: <span class="text-emerald-400">performance.now()</span>
+        </div>
+        <button id="viewDataSummaryBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 font-medium">
+          <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          البيانات المسجلة (<span id="eventCountBadge">0</span>)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Top Scientific Dashboard Grid -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-brand-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">السرعة (WPM)</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricWpm" class="text-2xl sm:text-3xl font-extrabold font-mono text-white">0</span>
+          <span class="text-xs text-slate-500">كلمة/د</span>
+        </div>
+        <div class="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+          <div id="barWpm" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-emerald-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">الدقة الحسابية</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricAccuracy" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">100</span>
+          <span class="text-xs text-emerald-500">%</span>
+        </div>
+        <div class="w-full bg-slate-700/50 h-1.5 rounded-full mt-2 overflow-hidden">
+          <div id="barAccuracy" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-indigo-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">متوسط البقاء (Hold)</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricHoldTime" class="text-2xl sm:text-3xl font-extrabold font-mono text-indigo-400">--</span>
+          <span class="text-xs text-indigo-400 font-mono">ms</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">زمن ضغط الزر المفرد</span>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-amber-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">زمن الانتقال (Flight PP)</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricFlightTime" class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">--</span>
+          <span class="text-xs text-amber-400 font-mono">ms</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">Press-to-Press (Inter-key)</span>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-rose-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">معدل التصحيح (Backspace)</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricBackspace" class="text-2xl sm:text-3xl font-extrabold font-mono text-rose-400">0</span>
+          <span class="text-xs text-slate-500">مرات</span>
+        </div>
+        <span class="text-[10px] text-slate-500">مؤشر التردد المعرفي</span>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-sm shadow-sm hover:border-purple-500/40 transition">
+        <span class="text-xs font-semibold text-slate-400">الانحراف المعياري (Std Dev)</span>
+        <div class="flex items-baseline gap-1 mt-2">
+          <span id="metricStdDev" class="text-2xl sm:text-3xl font-extrabold font-mono text-purple-400">--</span>
+          <span class="text-xs text-purple-400 font-mono">ms</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">ثبات الإيقاع الحركي</span>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-950/40 border border-slate-800/80 p-3 sm:p-4 rounded-2xl">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-slate-400 ml-1">نمط الاختبار البحثي:</span>
+        <button id="modeBenchBtn" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-md shadow-brand-600/30 transition">
+          النص المعياري المورفولوجي (Benchmark)
+        </button>
+        <button id="modeFreeBtn" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+          الكتابة الحرة التعبيرية (Free-Text)
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="resetSessionBtn" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          إعادة تعيين الجلسة
+        </button>
+        <button id="exportCsvBtn" class="px-3.5 py-1.5
